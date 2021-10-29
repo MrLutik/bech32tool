@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"encoding/hex"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,14 +10,13 @@ import (
 )
 
 func decode(encoded string) string {
-	_, decoded, err := bech32.Decode(encoded)
+	_, _, err := bech32.Decode(encoded)
 	if err != nil {
-		fmt.Println("Error", err)
+		//fmt.Println("ERROR:", err)
+		return "ERR"
+	} else {
+		return "OK"
 	}
-
-	//fmt.Println("Decoded human-readavle part:", hrp)
-	//fmt.Println("Decoded Data:", hex.EncodeToString(decoded))
-	return hex.EncodeToString(decoded)
 }
 
 func main() {
@@ -27,17 +24,28 @@ func main() {
 	if err != nil {
 		log.Fatalln("Couldn't open the csv file", err)
 	}
-	//fmt.Printf("TEST %v:\n", decode("kira1czpk0kpsvuahurf71qqqt5krr9gu7f10etyuc0"))
+
+	csvfile_result, err := os.OpenFile("validators_corrected", os.O_CREATE|os.O_RDWR, os.ModeAppend|os.ModePerm)
+	if err != nil {
+		log.Fatalln("Couldn't open the csv file", err)
+	}
+
 	r := csv.NewReader(csvfile)
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
 			break
 		}
-		if err != nil {
-			log.Fatal(err)
+		check := decode(record[0])
+		if check == "OK" {
+			w := csv.NewWriter(csvfile_result)
+			if err := w.Write(record); err != nil {
+				log.Fatalln("ERROR: failed to write file", err)
+			}
+			w.Flush()
 		}
-		fmt.Printf("\nKira address: %v\nDeocoded %v\n", record[0], decode(record[0]))
+
+		//fmt.Printf("%v::%v\n", record[0], decode(record[0]))
 	}
 
 }
